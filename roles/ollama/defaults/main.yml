@@ -1,0 +1,17 @@
+---
+# Ollama configuration variables
+ollama_host: "0.0.0.0" # Listens on all interfaces. Accessible within your 192.168.1.0/24 network
+ollama_port: 11434
+ollama_keep_alive: "5m"
+ollama_log_dir: "/var/log/ollama"
+ollama_log_file: "/var/log/ollama/ollama.log"
+ollama_model: "phi3:mini"
+ollama_user: "ollama"
+ollama_group: "ollama"
+
+# Logrotate configuration
+ollama_log_rotate_days: 2
+ollama_log_compress: true
+
+# Ollama install
+ollama_install_script: "https://ollama.com/install.sh"

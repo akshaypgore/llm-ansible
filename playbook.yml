@@ -1,0 +1,6 @@
+- name: Deploy Ollama LLM Infrastructure
+  hosts: llm_servers
+  become: yes
+
+  roles:
+    - ollama

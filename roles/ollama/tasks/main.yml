@@ -1,0 +1,73 @@
+---
+# Task 1 - Install Ollama
+- name: Install Ollama
+  shell: curl -fsSL {{ ollama_install_script }} | sh
+  args:
+    creates: /usr/local/bin/ollama # idempotent install. skips if already installed
+
+# Task 2 - Create log directory
+- name: Create Ollama log directory
+  file:
+    path: "{{ ollama_log_dir }}"
+    state: directory
+    owner: "{{ ollama_user }}"
+    group: "{{ ollama_group }}"
+    mode: '0755'
+
+# Task 3 - Configure systemd override
+- name: Create systemd override directory
+  file:
+    path: /etc/systemd/system/ollama.service.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+# Task 4 - Deploy systemd override template
+- name: Configure systemd override
+  template:
+    src: override.conf.j2
+    dest: /etc/systemd/system/ollama.service.d/override.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart Ollama
+
+# Task 5 - Configure logrotate
+- name: Configure logrotate for Ollama
+  template:
+    src: logrotate.j2
+    dest: /etc/logrotate.d/ollama
+    owner: root
+    group: root
+    mode: '0644'
+
+# Task 6 - Ensure Ollama service is enabled and running
+- name: Enable and start Ollama service
+  systemd:
+    name: ollama
+    enabled: yes
+    state: started
+  register: service_result
+  retries: 3
+  delay: 10
+  until: service_result is not failed
+
+# Task 7 - Pull Ollama model
+- name: Pull Ollama model
+  shell: ollama pull {{ ollama_model }}
+  become: false
+  register: pull_result
+  changed_when: "'already up to date' not in pull_result.stdout"
+
+# Task 8 - Verify Ollama is responding
+- name: Verify Ollama API is responding
+  uri:
+    url: "http://localhost:{{ ollama_port }}"
+    method: GET
+    status_code: 200
+  register: health_check
+  retries: 3
+  delay: 5

@@ -1,0 +1,9 @@
+{{ ollama_log_file }} {
+    daily
+    rotate {{ ollama_log_rotate_days }}
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 {{ ollama_user }} {{ ollama_group }}
+}

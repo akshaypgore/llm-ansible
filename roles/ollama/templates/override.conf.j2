@@ -1,0 +1,5 @@
+[Service]
+Environment="OLLAMA_HOST={{ ollama_host }}"
+Environment="OLLAMA_KEEP_ALIVE={{ ollama_keep_alive }}"
+StandardOutput=append:{{ ollama_log_file }}
+StandardError=append:{{ ollama_log_file }}
