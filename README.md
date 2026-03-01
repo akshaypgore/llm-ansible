@@ -8,5 +8,12 @@ VM Specs:
 
 **Note:** System used to run ansible should be able to ssh vm without password using public key authentication
 
+#### Steps
+1. Update inventory file with IP of vm and username used to run ansible
+2. Dry run `ansible-playbook -i inventory.ini playbook.yml --check`
+3. Run Playbook `ansible-playbook -i inventory.ini playbook.yml`
+
+
+
 
 
