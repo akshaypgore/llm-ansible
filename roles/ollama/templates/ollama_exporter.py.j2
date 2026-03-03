@@ -1,0 +1,144 @@
+
+#!/usr/bin/env python3
+"""
+Ollama Prometheus Exporter
+Exposes Ollama metrics in Prometheus format
+"""
+
+import http.server
+import urllib.request
+import json
+import time
+
+OLLAMA_HOST = "http://localhost:{{ ollama_port }}"
+EXPORTER_PORT = {{ ollama_exporter_port }}
+
+
+{% raw %}
+def get_ollama_ps():
+    """Get running models from Ollama API"""
+    try:
+        url = f"{OLLAMA_HOST}/api/ps"
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return json.loads(response.read())
+    except Exception as e:
+        print(f"Error querying /api/ps: {e}")
+        return None
+
+
+def get_ollama_tags():
+    """Get downloaded models from Ollama API"""
+    try:
+        url = f"{OLLAMA_HOST}/api/tags"
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return json.loads(response.read())
+    except Exception as e:
+        print(f"Error querying /api/tags: {e}")
+        return None
+
+
+def get_ollama_health():
+    """Check if Ollama API is responding"""
+    try:
+        url = f"{OLLAMA_HOST}"
+        with urllib.request.urlopen(url, timeout=5) as response:
+            return 1 if response.status == 200 else 0
+    except Exception:
+        return 0
+
+
+def generate_metrics():
+    """Generate Prometheus metrics from Ollama API"""
+    metrics = []
+
+    # Health check
+    health = get_ollama_health()
+    metrics.append("# HELP ollama_up Whether Ollama API is responding")
+    metrics.append("# TYPE ollama_up gauge")
+    metrics.append(f"ollama_up {health}")
+
+    # Running models metrics
+    ps_data = get_ollama_ps()
+    if ps_data and "models" in ps_data:
+        models = ps_data["models"]
+
+        metrics.append("# HELP ollama_models_loaded Number of models currently loaded in RAM")
+        metrics.append("# TYPE ollama_models_loaded gauge")
+        metrics.append(f"ollama_models_loaded {len(models)}")
+
+        metrics.append("# HELP ollama_model_ram_bytes RAM consumed by each loaded model")
+        metrics.append("# TYPE ollama_model_ram_bytes gauge")
+
+        metrics.append("# HELP ollama_model_context_length Context window size of loaded model")
+        metrics.append("# TYPE ollama_model_context_length gauge")
+
+        metrics.append("# HELP ollama_model_loaded Whether specific model is loaded")
+        metrics.append("# TYPE ollama_model_loaded gauge")
+
+        for model in models:
+            name = model.get("name", "unknown")
+            size = model.get("size", 0)
+            context = model.get("context_length", 0)
+
+            metrics.append(f'ollama_model_ram_bytes{{model="{name}"}} {size}')
+            metrics.append(f'ollama_model_context_length{{model="{name}"}} {context}')
+            metrics.append(f'ollama_model_loaded{{model="{name}"}} 1')
+    else:
+        metrics.append("# HELP ollama_models_loaded Number of models currently loaded in RAM")
+        metrics.append("# TYPE ollama_models_loaded gauge")
+        metrics.append("ollama_models_loaded 0")
+
+    # Downloaded models metrics
+    tags_data = get_ollama_tags()
+    if tags_data and "models" in tags_data:
+        models = tags_data["models"]
+
+        metrics.append("# HELP ollama_models_available Number of models downloaded on disk")
+        metrics.append("# TYPE ollama_models_available gauge")
+        metrics.append(f"ollama_models_available {len(models)}")
+
+        metrics.append("# HELP ollama_model_disk_bytes Disk space consumed by each model")
+        metrics.append("# TYPE ollama_model_disk_bytes gauge")
+
+        total_disk = 0
+        for model in models:
+            name = model.get("name", "unknown")
+            size = model.get("size", 0)
+            total_disk += size
+            metrics.append(f'ollama_model_disk_bytes{{model="{name}"}} {size}')
+
+        metrics.append("# HELP ollama_total_disk_bytes Total disk space used by all models")
+        metrics.append("# TYPE ollama_total_disk_bytes gauge")
+        metrics.append(f"ollama_total_disk_bytes {total_disk}")
+
+    return "\n".join(metrics)
+
+
+class MetricsHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/metrics":
+            metrics = generate_metrics()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(metrics.encode())
+        elif self.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+    def log_message(self, format, *args):
+        # Suppress default request logs
+        pass
+
+
+if __name__ == "__main__":
+    server = http.server.HTTPServer(("0.0.0.0", EXPORTER_PORT), MetricsHandler)
+    print(f"Ollama exporter running on port {EXPORTER_PORT}")
+    print(f"Metrics available at http://0.0.0.0:{EXPORTER_PORT}/metrics")
+    server.serve_forever()
+{% endraw %}

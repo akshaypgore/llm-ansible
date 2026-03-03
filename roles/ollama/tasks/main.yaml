@@ -71,3 +71,41 @@
   register: health_check
   retries: 3
   delay: 5
+
+# Task 9 - Create exporter directory
+- name: Create Ollama exporter directory
+  file:
+    path: "{{ ollama_exporter_path }}"
+    state: directory
+    owner: "{{ ollama_exporter_user }}"
+    group: "{{ ollama_group }}"
+    mode: '0755'
+
+# Task 10 - Deploy exporter script
+- name: Deploy Ollama exporter script
+  template:
+    src: ollama_exporter.py.j2
+    dest: "{{ ollama_exporter_path }}/ollama_exporter.py"
+    owner: "{{ ollama_exporter_user }}"
+    group: "{{ ollama_group }}"
+    mode: '0755'
+  notify: Restart Ollama exporter
+
+# Task 11 - Deploy exporter systemd service
+- name: Deploy Ollama exporter service
+  ansible.builtin.template:
+    src: ollama_exporter.service.j2
+    dest: /etc/systemd/system/ollama-exporter.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd
+    - Restart Ollama exporter
+
+# Task 12 - Enable and start exporter service
+- name: Enable and start Ollama exporter
+  systemd:
+    name: ollama-exporter
+    enabled: yes
+    state: started

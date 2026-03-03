@@ -1,0 +1,16 @@
+[Unit]
+Description=Ollama Prometheus Exporter
+After=network.target ollama.service
+Requires=ollama.service
+
+[Service]
+Type=simple
+User={{ ollama_exporter_user }}
+ExecStart=/usr/bin/python3 {{ ollama_exporter_path }}/ollama_exporter.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

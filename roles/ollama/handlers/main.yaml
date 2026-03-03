@@ -7,3 +7,8 @@
   systemd:
     name: ollama
     state: restarted
+
+- name: Restart Ollama exporter
+  systemd:
+    name: ollama-exporter
+    state: restarted
