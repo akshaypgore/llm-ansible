@@ -1,0 +1,86 @@
+---
+# Task 1 - Update apt cache
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+# Task 2 - Install Prometheus
+- name: Install Prometheus
+  apt:
+    name: prometheus
+    state: present
+  notify: Restart Prometheus
+
+# Task 3 - Deploy Prometheus config
+- name: Deploy Prometheus configuration
+  template:
+    src: prometheus.yaml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+    mode: '0644'
+  notify: Restart Prometheus
+
+# Task 4 - Ensure Prometheus is enabled and running
+- name: Enable and start Prometheus
+  systemd:
+    name: prometheus
+    enabled: yes
+    state: started
+
+# Task 5 - Install Grafana dependencies
+- name: Install Grafana dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - software-properties-common
+      - wget
+    state: present
+
+# Task 6 - Add Grafana GPG key
+- name: Add Grafana GPG key
+  shell: |
+    wget -q -O /usr/share/keyrings/grafana.key https://apt.grafana.com/gpg.key
+  args:
+    creates: /usr/share/keyrings/grafana.key
+
+# Task 7 - Add Grafana repository
+- name: Add Grafana repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/grafana.key] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+
+# Task 8 - Install Grafana
+- name: Install Grafana
+  apt:
+    name: grafana
+    state: present
+    update_cache: yes
+  notify: Restart Grafana
+
+# Task 9 - Enable and start Grafana
+- name: Enable and start Grafana
+  systemd:
+    name: grafana-server
+    enabled: yes
+    state: started
+
+# Task 10 - Verify Prometheus is responding
+- name: Verify Prometheus API is responding
+  uri:
+    url: "http://localhost:{{ prometheus_port }}"
+    method: GET
+    status_code: 200
+  retries: 3
+  delay: 5
+
+# Task 11 - Verify Grafana is responding
+- name: Verify Grafana is responding
+  uri:
+    url: "http://localhost:{{ grafana_port }}"
+    method: GET
+    status_code: 200
+  retries: 5
+  delay: 10

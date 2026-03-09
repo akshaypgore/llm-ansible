@@ -4,3 +4,9 @@
 
   roles:
     - ollama
+
+- name: Deploy Monitoring Infrastructure
+  hosts: monitoring_servers
+  become: yes
+  roles:
+    - monitoring

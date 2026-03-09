@@ -1,0 +1,26 @@
+global:
+  scrape_interval: {{ prometheus_scrape_interval }}
+  evaluation_interval: {{ prometheus_evaluation_interval }}
+
+scrape_configs:
+
+  # Prometheus self monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:{{ prometheus_port }}"]
+
+  # Ollama exporter on phi VM
+  - job_name: "ollama"
+    static_configs:
+      - targets: ["{{ ollama_exporter_host }}:{{ ollama_exporter_port }}"]
+        labels:
+          instance: "phi"
+          service: "ollama"
+
+  # Node exporter on phi VM
+  - job_name: "node"
+    static_configs:
+      - targets: ["{{ ollama_exporter_host }}:{{ phi_node_exporter_port }}"]
+        labels:
+          instance: "phi"
+          service: "node"

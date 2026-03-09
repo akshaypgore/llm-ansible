@@ -12,3 +12,8 @@
   systemd:
     name: ollama-exporter
     state: restarted
+
+- name: Restart Node Exporter
+  systemd:
+    name: prometheus-node-exporter
+    state: restarted

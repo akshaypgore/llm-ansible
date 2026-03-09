@@ -109,3 +109,17 @@
     name: ollama-exporter
     enabled: yes
     state: started
+
+# Task 13 - Install Node Exporter
+- name: Install Node Exporter
+  apt:
+    name: prometheus-node-exporter
+    state: present
+  notify: Restart Node Exporter
+
+# Task 14 - Enable and start Node Exporter
+- name: Enable and start Node Exporter
+  systemd:
+    name: prometheus-node-exporter
+    enabled: yes
+    state: started
