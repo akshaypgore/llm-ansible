@@ -1,0 +1,6 @@
+---
+- name: restart chromadb
+  systemd:
+    name: chromadb
+    state: restarted
+    daemon_reload: yes

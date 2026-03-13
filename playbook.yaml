@@ -4,6 +4,7 @@
 
   roles:
     - ollama
+    - rag
 
 - name: Deploy Monitoring Infrastructure
   hosts: monitoring_servers

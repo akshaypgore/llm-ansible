@@ -1,0 +1,105 @@
+---
+# ── 1. System dependencies ─────────────────────────────────────────────────────
+
+- name: Install Python pip and venv
+  apt:
+    name:
+      - python3-pip
+      - python3-venv
+    state: present
+    update_cache: yes
+  tags: rag
+
+# ── 2. Install ChromaDB and requests ──────────────────────────────────────────
+
+- name: Install ChromaDB and requests via pip
+  pip:
+    name:
+      - chromadb
+      - requests
+    state: present
+    extra_args: "--break-system-packages --ignore-installed"
+  tags: rag
+
+# ── 3. Pull nomic-embed-text embedding model via Ollama ───────────────────────
+
+- name: Pull nomic-embed-text embedding model
+  command: ollama pull {{ embed_model }}
+  become_user: "{{ rag_user }}"
+  register: ollama_pull
+  changed_when: "'already up to date' not in ollama_pull.stdout"
+  tags: rag
+
+# ── 4. Create directory structure ─────────────────────────────────────────────
+
+- name: Create RAG pipeline install directory
+  file:
+    path: "{{ rag_install_dir }}"
+    state: directory
+    owner: "{{ rag_user }}"
+    mode: "0755"
+  tags: rag
+
+- name: Create docs subdirectories
+  file:
+    path: "{{ rag_docs_dir }}/{{ item }}"
+    state: directory
+    owner: "{{ rag_user }}"
+    mode: "0755"
+  loop:
+    - ansible
+    - monitoring
+    - blog
+  tags: rag
+
+- name: Create ChromaDB data directory
+  file:
+    path: "{{ chromadb_data_path }}"
+    state: directory
+    owner: "{{ rag_user }}"
+    mode: "0755"
+  tags: rag
+
+# ── 5. Deploy Python scripts ───────────────────────────────────────────────────
+
+- name: Deploy config.py
+  template:
+    src: config.py.j2
+    dest: "{{ rag_install_dir }}/config.py"
+    owner: "{{ rag_user }}"
+    mode: "0644"
+  tags: rag
+
+- name: Deploy ingest.py
+  template:
+    src: ingest.py.j2
+    dest: "{{ rag_install_dir }}/ingest.py"
+    owner: "{{ rag_user }}"
+    mode: "0755"
+  tags: rag
+
+- name: Deploy query.py
+  template:
+    src: query.py.j2
+    dest: "{{ rag_install_dir }}/query.py"
+    owner: "{{ rag_user }}"
+    mode: "0755"
+  tags: rag
+
+# ── 6. Deploy and enable ChromaDB systemd service ─────────────────────────────
+
+- name: Deploy ChromaDB systemd service
+  template:
+    src: chromadb.service.j2
+    dest: /etc/systemd/system/chromadb.service
+    mode: "0644"
+  notify: restart chromadb
+  tags: rag
+
+- name: Enable and start ChromaDB service
+  systemd:
+    name: chromadb
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  tags: rag

@@ -1,0 +1,21 @@
+---
+# ChromaDB
+chromadb_host: "0.0.0.0"
+chromadb_port: 8001
+chromadb_data_path: "/data/chromadb"
+chromadb_collection: "homelabdocs"
+
+# Ollama
+ollama_url: "http://localhost:11434"
+embed_model: "nomic-embed-text"
+llm_model: "phi3:mini"
+
+# RAG pipeline
+rag_install_dir: "/opt/rag-pipeline"
+rag_docs_dir: "/opt/rag-pipeline/docs"
+rag_user: "akshaygore"
+
+# Chunking
+chunk_size: 500
+chunk_overlap: 50
+top_n_results: 3
